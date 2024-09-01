@@ -9,6 +9,8 @@ NanoRAG 是一个本地运行的轻量化RAG模型，可以从本地文档生成
 ## 快速开始
 
 ### 环境准备
+0. 准备
+   Python 3.10+, 需要安装Visual C++ 14.0或更高版本的编译器。
 1. 克隆存储库到本地: 
     ```
     git clone https://github.com/Xuan03-THU/NanoRAG.git
