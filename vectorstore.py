@@ -14,6 +14,13 @@ from langchain_core.documents import Document
 from langchain_community.docstore.in_memory import InMemoryDocstore
 
 import faiss
+from utils import *
+
+# 需要添加当前目录到系统路径，保证HuggingFaceEmbeddings可以通过model_name加载本地模型
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '.'))) 
+
 
 class VectorStore():
     '''
@@ -58,9 +65,6 @@ class VectorStore():
                 index_to_docstore_id={},
             )
 
-        self.index_to_docstore_id = self.vector_store.index_to_docstore_id
-        self.docstore = self.vector_store.docstore
-
     def save(self, local_path='./vector_store.faiss'):
         '''
         保存当前存储器到本地
@@ -70,6 +74,7 @@ class VectorStore():
         '''
         self.vector_store.save_local(local_path)
 
+    # TODO
     def merge(self, other_vector_store: 'VectorStore'):
         '''
         将另一个存储器合并到当前存储器
@@ -80,63 +85,50 @@ class VectorStore():
         异常: 
             ValueError: 另一个存储器的词向量模型或维度不匹配
         '''
-        if self.embeddings_model!= other_vector_store.embeddings_model or self.embeddings_dim!= other_vector_store.embeddings_dim:
+        # TODO: 合并时，是否需要重新训练索引？判断embeddings 是否一致的方法是否需要修改？
+        # TODO: 合并文件列表
+        if self.cache_folder!= other_vector_store.cache_folder or self.embeddings_dim!= other_vector_store.embeddings_dim:
             raise ValueError("Cannot merge two vector stores with different embeddings")
         self.vector_store.merge_from(other_vector_store.vector_store)
 
-    def __get_ids(self, idx: int | list[int]):
+    def __get_ids(self, idx: int | list[int] | str | list[str]):
         '''
-        从索引获取id
+        获取id（如果是int 说明是索引，如果是str 说明是id）
         参考: https://github.com/langchain-ai/langchain/issues/8897
 
         参数:
-            idx: 索引（列表）
+            idx: 索引或id（列表）
 
         返回:
             id: id列表
         '''
-        if isinstance(idx, int):
+        if isinstance(idx, int) or isinstance(idx, str):
             idx = [idx]
         
         ids = []
         for i in idx:
-            if i not in self.index_to_docstore_id:
-                raise ValueError(f"Index {i} is not in the vector store")
-            ids.append(self.index_to_docstore_id[i])
+            if isinstance(i, str):
+                if i not in self.vector_store.docstore._dict:
+                    raise ValueError(f"Document with id {i} is not in the vector store")
+                ids.append(i)
+            else:
+                if i not in self.vector_store.index_to_docstore_id:
+                    raise ValueError(f"Index {i} is not in the vector store")
+                ids.append(self.vector_store.index_to_docstore_id[i])
         return ids
     
-    def get_docs(self, idx: int | list[int]):
+    def get_docs(self, idx: int | list[int] | str | list[str]):
         '''
         获取文档
 
         参数:
-            idx: 索引（列表）
+            idx: 索引或id（列表）
 
         返回:
             docs: 文档列表
         '''
         ids = self.__get_ids(idx)
         return self.get_docs_through_ids(ids)
-        
-    def get_docs_through_ids(self, ids: int | list[int]):
-        '''
-        通过id获取文档
-
-        参数:
-            ids: id（列表）
-
-        返回:
-            docs: 文档列表
-        '''
-        if isinstance(ids, int):
-            ids = [ids]
-
-        docs = []
-        for i in ids:
-            if i not in self.docstore._dict:
-                raise ValueError(f"Document with id {i} is not in the vector store")
-            docs.append(self.docstore._dict[i])
-        return docs
     
     def get_all_docs(self):
         '''
@@ -146,7 +138,7 @@ class VectorStore():
             docs: 文档列表
         '''
         # Python 3.7+ only, 否则无法保证顺序
-        return self.get_docs(list(self.index_to_docstore_id.values()))
+        return self.get_docs(list(self.vector_store.index_to_docstore_id.values()))
 
     def __len__(self):
         '''
@@ -155,7 +147,7 @@ class VectorStore():
         返回:
             文档数量
         '''
-        return len(self.index_to_docstore_id)
+        return len(self.vector_store.index_to_docstore_id)
     
     def add(self, documents: Document | list[Document]):
         '''
@@ -172,16 +164,16 @@ class VectorStore():
         # 用hash值作为id
         ids = []
         for doc in documents:
-            h = hash(doc.page_content)
-            if h in self.docstore._dict:
+            h = get_hash(doc)
+            if h in self.vector_store.docstore._dict:
                 documents.remove(doc)
             else:
                 ids.append(h)
         self.vector_store.add_documents(documents=documents, ids=ids)
 
-    def delete(self, idx: int | list[int]):
+    def delete(self, idx: int | list[int] | str | list[str]):
         '''
-        根据索引删除文档
+        根据索引或id删除文档（新版本中，因为使用SHA256作为id，数据类型为str，所以可以进行区分）
 
         参数:
             idx: 索引（列表）
@@ -190,22 +182,9 @@ class VectorStore():
             ValueError: 文档不存在
         '''
         ids = self.__get_ids(idx)
-        self.delete_through_ids(ids)
 
-    def delete_through_ids(self, ids: int | list[int]):
-        '''
-        通过id删除文档（因为id也是int，所以不能跟上面的delete方法合并）
-
-        参数:
-            ids: id（列表）
-
-        异常:
-            ValueError: 文档不存在
-        '''
-        if isinstance(ids, int):
-            ids = [ids]
-        for i in ids:
-            if i not in self.docstore._dict:
+        for i in ids:       # 其实__get_ids已经保证了不存在的文档不会被删除
+            if i not in self.vector_store.docstore._dict:   
                 raise ValueError(f"Document with id {i} is not in the vector store")
         self.vector_store.delete(ids=ids)
 
@@ -219,21 +198,22 @@ class VectorStore():
         异常:
             ValueError: 文档不存在            
         '''
-        ids = [hash(doc.page_content)]
-        self.delete_through_ids(ids)
+        ids = [get_hash(doc)]
+        self.delete(ids)
 
-    def search(self, query: str, top_k: int = 5):
+    def search(self, query: str, top_k: int = 5, get_scores=False):
         '''
         搜索文档
 
         参数:
             query: 查询语句
             top_k: 返回的文档数量
+            get_scores: 是否返回相关性得分
 
         返回:
             docs: 文档列表
         '''
-        retriever_ = self.vector_store.as_retriever(search_kwargs={"k": top_k})
-        docs = retriever_.invoke(query)
-
-        return docs
+        if get_scores:
+            return self.vector_store.similarity_search_with_relevance_scores(query, k=top_k)
+        else:
+            return self.vector_store.similarity_search(query, k=top_k)
