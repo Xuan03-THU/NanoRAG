@@ -28,7 +28,7 @@ class Retriever():
         remove: 删除某个文档
     '''
 
-    def __init__(self, local_path=None, embeddings_model="./bge-small-zh-v1.5", nlist=1000):
+    def __init__(self, local_path=None, embeddings_model="./bge-small-zh-v1.5"):
         '''
         初始化: 新建一个Retriever对象，传入本地路径和向量模型路径用于构造VectorStore对象
 
@@ -37,11 +37,15 @@ class Retriever():
             embeddings_model: 向量模型路径
             nlist: 聚类中心的个数
         '''
-        self.vs = VectorStore(local_path=local_path, embeddings_model=embeddings_model, nlist=nlist)
+        self.vs = VectorStore(local_path=local_path, embeddings_model=embeddings_model)
         self.local_path = local_path
         if local_path is not None:
-            with open(os.path.join(local_path, "files.json"), 'r') as f:
-                self.files = set(json.load(f))
+            try:
+                with open(os.path.join(local_path, "files.json"), 'r') as f:
+                    self.files = set(json.load(f))
+            except:
+                print("No files.json found, create a new one")
+                self.files = set()
         else:
             self.files = set()
 
@@ -164,7 +168,7 @@ class Retriever():
         except:
             raise ValueError("Invalid data")
         try:
-            self.vs.delete_through_document(doc)
+            self.vs.delete_document(doc)
             return True
         except Exception as e:
             print(e)
