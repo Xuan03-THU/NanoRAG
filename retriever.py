@@ -122,23 +122,27 @@ class Retriever():
         with open(os.path.join(local_path, "files.json"), 'w') as f:
             json.dump(list(self.files), f)
 
-    def retrieve(self, query, top_k=5):
+    def retrieve(self, query, top_k=5, get_scores=False):
         '''
         根据query检索文档，返回top_k个结果
 
         参数:
             query: 查询语句
             top_k: 返回的结果个数
+            get_scores: 是否返回分数
 
         返回:
-            一个列表，包含top_k个结果的文本
+            一个列表，包含top_k个结果的文本（或文本和分数）
         '''
-        res = self.vs.search(query, top_k)
+        res = self.vs.search(query, top_k, get_scores=get_scores)
 
         contents = []
-        for item in res:
-            contents.append(decode(item))
-
+        if not get_scores:
+            for item in res:
+                contents.append(decode(item))
+        else:
+            for item, score in res:
+                contents.append((decode(item), score))
         return contents
         
     def remove(self, data):
@@ -148,9 +152,20 @@ class Retriever():
         参数:
             data: 文档数据，可以是文本或字典
 
+        返回:
+            True: 删除成功
+            False: 删除失败
+
         异常:
             ValueError: 文档不存在
         '''
-        doc = encode(data)
-        h = hash(doc.page_content)
-        self.vs.delete_through_ids(h)
+        try:
+            doc = encode(data)
+        except:
+            raise ValueError("Invalid data")
+        try:
+            self.vs.delete_through_document(doc)
+            return True
+        except Exception as e:
+            print(e)
+            return False

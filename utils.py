@@ -13,6 +13,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 
 import json
+import hashlib
 
 def read_pdf(path, chunk_size=1000, chunk_overlap=200):
     '''
@@ -118,3 +119,18 @@ def decode(document: Document):
             print(f"Error during deserialization: {e}")
             return None
 
+def get_hash(document: Document):
+    '''
+    获取Document对象的哈希值
+
+    参数: 
+        document: Document对象
+
+    返回: 
+        hash_value: 哈希值
+
+    注意: 
+    因为Python 自带的hash() 函数在不同进程中可能产生不同的结果，所以这里使用确定性的SHA256算法计算哈希值
+    '''
+    content = document.page_content
+    return hashlib.sha256(content.encode('utf-8')).hexdigest()

@@ -21,7 +21,7 @@ NanoRAG 是一个本地运行的轻量化RAG模型，可以从本地文档生成
     ```
 
 3. 下载预训练模型:   
-   默认使用[bge-small-zh-v1.5](https://huggingface.co/BAAI/bge-small-zh-v1.5/tree/main)，把所有文件保存到子文件夹 './bge-small-zh-v1.5' 下。  
+   默认使用[bge-small-zh-v1.5](https://huggingface.co/BAAI/bge-small-zh-v1.5/tree/main)，把所有文件保存到子文件夹 './bge-small-zh-v1.5' 下（代码会自动把NanoRAG目录加入到环境变量，如果在其他地方保存模型，请手动添加环境变量或使用绝对路径）。  
    也可以在初始化Retriever时指定路径。  
     还可以直接在初始化时通过huggingface下载:
     ```
