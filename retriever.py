@@ -75,7 +75,7 @@ class Retriever():
         self.vs.add(texts)
         self.files.add(file_path)
 
-    def load(self, file_path, force_read=False):
+    def load(self, file_path, force_load=False):
         '''
         把文件当作数据列表，并将其添加到VectorStore中
         支持的格式: json, txt
@@ -87,7 +87,7 @@ class Retriever():
         异常:
             ValueError: 不支持的文件类型
         '''
-        if file_path in self.files and not force_read:
+        if file_path in self.files and not force_load:
             print(f"{file_path} has been loaded before, skip")
             return
         suffix = file_path.split(".")[-1]
@@ -107,6 +107,10 @@ class Retriever():
 
         self.vs.add(texts)
         self.files.add(file_path)
+
+    def add(self, data):
+        doc = encode(data)
+        self.vs.add([doc])
 
     def save(self, local_path=None):
         '''
