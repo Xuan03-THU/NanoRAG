@@ -1,11 +1,11 @@
 '''
 VectorStore: 基于FAISS的向量存储
-Version: 0.1
+Version: 0.1.1
 
 @Author: 李语轩
 @GitHub: https://github.com/Xuan03-THU
 
-2024/8/31
+2024/10/04
 '''
 
 from langchain.vectorstores import FAISS
@@ -39,16 +39,22 @@ class VectorStore():
         search: 搜索文档
     '''
 
-    def __init__(self, local_path=None, embeddings_model="./bge-small-zh-v1.5"):
+    def __init__(self, local_path=None, embeddings_model=None, 
+                 device=None):
         '''
         初始化: 新建一个存储器，或者从本地加载一个存储器
 
         参数:
             local_path: 本地存储器路径
             embeddings_model: 词向量模型
+            device: 模型的device
         '''
         self.embeddings_model = embeddings_model
-        self.embeddings = HuggingFaceEmbeddings(model_name=embeddings_model)
+        self.device = device if device is not None else 'cpu'
+        model_kwargs = {'device': self.device}
+        # encode_kwargs = {'normalize_embeddings': False}
+        self.embeddings = HuggingFaceEmbeddings(model_name=embeddings_model, 
+                        model_kwargs=model_kwargs)
         self.embeddings_dim = len(self.embeddings.embed_query("hello world"))
         
         if local_path is not None:

@@ -1,11 +1,11 @@
 '''
 Retriever: 利用VectorStore进行文档检索
-Version: 0.1
+Version: 0.1.1
 
 @Author: 李语轩
 @GitHub: https://github.com/Xuan03-THU
 
-2024/8/31
+2024/10/04
 '''
 
 
@@ -28,16 +28,17 @@ class Retriever():
         remove: 删除某个文档
     '''
 
-    def __init__(self, local_path=None, embeddings_model="./bge-small-zh-v1.5"):
+    def __init__(self, local_path=None, embeddings_model="./bge-small-zh-v1.5", 
+                 device=None):
         '''
         初始化: 新建一个Retriever对象，传入本地路径和向量模型路径用于构造VectorStore对象
 
         参数: 
             local_path: 本地路径，用于保存向量模型和文件列表
             embeddings_model: 向量模型路径
-            nlist: 聚类中心的个数
+            device: 模型的device
         '''
-        self.vs = VectorStore(local_path=local_path, embeddings_model=embeddings_model)
+        self.vs = VectorStore(local_path=local_path, embeddings_model=embeddings_model, device=device)
         self.local_path = local_path
         if local_path is not None:
             try:
