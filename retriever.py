@@ -23,6 +23,7 @@ class Retriever():
         初始化: 新建一个Retriever对象，传入本地路径和向量模型路径用于构造VectorStore对象
         read: 把文件当作文字信息，并将其内容添加到VectorStore中
         load: 把文件当作数据列表，并将其添加到VectorStore中
+        add: 添加文档数据
         save: 保存VectorStore和文件列表
         retrieve: 根据query检索文档，返回top_k个结果
         remove: 删除某个文档
@@ -108,6 +109,22 @@ class Retriever():
 
         self.vs.add(texts)
         self.files.add(file_path)
+        
+    def add(self, data):
+        '''
+        添加文档数据
+
+        参数:
+            data: 文档数据，可以是文本或字典
+
+        异常:
+            ValueError: 文档数据格式错误
+        '''
+        try:
+            doc = encode(data)
+        except:
+            raise ValueError("Invalid data")
+        self.vs.add(doc)
 
     def save(self, local_path=None):
         '''
